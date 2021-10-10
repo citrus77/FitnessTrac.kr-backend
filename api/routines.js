@@ -9,19 +9,51 @@ const {
     getRoutineById, 
     updateRoutine, 
     destroyRoutine,
-    addActivityToRoutine,
+    addActivityToRoutine
 } = require('../db');
 
+const client = require('../db/client')
 
-router.post('/:routineId/activities',requireUser, async (req, res, next) => {
+const _dupeCheck = async (routineId, activityId) => {
     try {
-        const { routineId, activityId, count, duration } = req.body;
-        const addedRoutineActivity = await addActivityToRoutine({ routineId, activityId, count, duration });
+        const { rows: [routineActivity] } = await client.query(`
+            SELECT * FROM routine_activities
+            WHERE "routineId" = $1 AND "activityId" = $2;
+        `, [routineId, activityId]);
 
-        console.log(addedRoutineActivity, "<<<<<<<<<<<<000000000000000")
-        console.log(routineId, activityId, '<<<<<<---------------')
-        console.log(addedRoutineActivity.routineId, addedRoutineActivity.activityId, '<<<<<<<<===========')
-        res.send({addedRoutineActivity});                 
+        if (routineActivity) {
+            return true;
+        } else {
+            return false;
+        };          
+    } catch (error) {
+        throw error;
+    };
+};
+
+router.post('/:routineId/activities', async (req, res, next) => {
+    try {
+        const { routineId } = req.params;
+        const { activityId, count, duration } = req.body;
+        const checkDupe = await _dupeCheck(routineId, activityId);
+        if (!checkDupe) {
+            const addedRoutineActivity = await addActivityToRoutine({ routineId, activityId, count, duration });
+            if (addedRoutineActivity) {
+                res.send(addedRoutineActivity);
+            } else {
+                res.sendStatus(401);
+                next ({
+                    name: 'FailedCreateError',
+                    message: 'This routine activity was not sucessfully created'
+                });
+            };   
+        } else {
+            res.status(401);
+            next ({
+                name: 'DuplicateError',
+                message: 'This routine activity already exists'
+            });
+        };                      
     } catch (error) {
         next (error);
     };
@@ -35,6 +67,7 @@ router.patch('/:routineId', requireUser, async (req, res, next) => {
             const id = routine.id;
             const { isPublic, name, goal } = req.body;
             const updatedRoutine = await updateRoutine({id, isPublic, name, goal} );
+
             res.send(updatedRoutine);
         } else {
             res.status(401);
@@ -53,8 +86,7 @@ router.delete('/:routineId', requireUser, async (req, res, next) => {
         let routine = await getRoutineById(req.params.routineId);
         const isOwner = req.user.id === routine.creatorId;
         if (isOwner) {
-            const { routineId } = req.params;
-            const deletedRoutine = await destroyRoutine(routineId);
+            const deletedRoutine = await destroyRoutine(req.params.routineId);
             routine = await getRoutineById(req.params.routineId);
             if (!routine) {
                 res.status(200).send(deletedRoutine)
@@ -73,21 +105,26 @@ router.delete('/:routineId', requireUser, async (req, res, next) => {
 
 
 router.post('/', requireUser, async (req, res, next) => {
-    if (req.user) {
-        const creatorId = req.user.id;
-        const { isPublic, name, goal } = req.body;
-        const newRoutine = await createRoutine({creatorId, isPublic, name, goal});
-        
-        if (newRoutine) {
-            res.send(newRoutine);
-        } else {
-            next ({
-                name: 'FailedCreate',
-                message: `Cannot create post with data isPublic: ${isPublic}, name: ${name}, goal: ${goal}`
-            });
-        };
-    };    
-});
+    try {
+        if (req.user) {
+            const creatorId = req.user.id;
+            const { isPublic, name, goal } = req.body;
+            const newRoutine = await createRoutine({creatorId, isPublic, name, goal});
+            
+            if (newRoutine) {
+                res.send(newRoutine);
+            } else {
+                res.status(401);
+                next ({
+                    name: 'FailedCreate',
+                    message: `Cannot create post with data isPublic: ${isPublic}, name: ${name}, goal: ${goal}`
+                });
+            };
+        };   
+    } catch (error) {
+        next (error);
+    };
+});    
 
 router.get('/', async (req, res, next) => {
     try {

@@ -1,10 +1,14 @@
 const requireUser = (req, res, next) => {
-    if (req.user) {
-        next();
-    } else {
-        res.sendStatus(409);
-        next();
-    }
+    try {
+        if (req.user) {
+            next();
+        } else {
+            res.sendStatus(409);
+            next();
+        }
+    } catch (error) {
+        next (error);
+    };    
 };
 
 module.exports = {

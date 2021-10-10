@@ -1,35 +1,14 @@
 const client = require('./client');
 
-const _dupCheck = async (routineId, activityId) => {
-    try {
-        const { rows: [routineActivity] } = await client.query(`
-            SELECT * FROM routine_activities
-            WHERE "routineId" = $1 AND "activityId" = $2;
-        `, [routineId, activityId]);
-
-        return routineActivity;            
-    } catch (error) {
-        throw error;
-    }
-}
-
 const addActivityToRoutine = async ({ routineId, activityId, count, duration }) => {
     try {
-        const isDup = await _dupCheck(routineId, activityId);
-        if (isDup) {
-            throw new Error ({
-                name: 'RoutineActivityExistsError',
-                message: "This routine activity already exists."
-            });
-        } else {
-            const { rows: [routineActivity] } = await client.query(`
+        const { rows: [routineActivity] } = await client.query(`
             INSERT INTO routine_activities ("routineId", "activityId", count, duration)
             VALUES ($1, $2, $3, $4)
             RETURNING *;
         `, [routineId, activityId, count, duration]);
 
         return routineActivity;
-        };        
     } catch (error) {
         throw error;
     };
@@ -101,7 +80,7 @@ const getRoutineActivityById = async (id) => {
         `, [id]);
         return routineActivity;
     } catch (error) {
-        next (error);
+        throw error;
     };
 };
 

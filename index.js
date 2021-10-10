@@ -17,7 +17,7 @@ const apiRouter = require('./api');
 server.use('/api', apiRouter);
 
 server.get('/', async (req, res, next) => {
-    res.send('Welcome to Fitness Trackr');
+    res.send('Welcome to Fitness Trac.kr');
 });
 
 const { PORT = 3000 } = process.env;

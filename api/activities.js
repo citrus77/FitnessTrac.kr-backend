@@ -7,6 +7,7 @@ const router = express.Router();
 router.get('/', async (req, res, next) => {
     try {
         const activities = await getAllActivities();
+        
         res.send(activities);
     } catch (error) {
         next (error);
@@ -32,6 +33,7 @@ router.patch('/:activityId', requireUser, async (req, res, next) => {
                 name, 
                 description 
             });
+            
             res.send(updatedActivity)
         } else {
             res.send({
@@ -48,8 +50,7 @@ router.get('/:activityId/routines', async (req, res, next) => {
     try {
         const id = req.params.activityId;
         const routines = await getPublicRoutinesByActivity({ id });
-        res.send(routines)
-        
+        res.send(routines);        
     } catch (error) {
         next (error);
     };
