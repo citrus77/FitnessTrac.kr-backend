@@ -17,7 +17,6 @@ router.use(async (req, res, next) => {
         next();
     } else if (auth.startsWith(prefix)) {
         const token = auth.slice(prefix.length);
-
         try {
             const { id } = jwt.verify(token, JWT_SECRET)
             if (id) {

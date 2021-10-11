@@ -1,11 +1,9 @@
 // api/users.js
 const express = require('express');
 const router = express.Router();
-
 const { JWT_SECRET } = process.env;
 const jwt = require('jsonwebtoken');
 const bcrypt = require ('bcrypt');
-
 const { getUserByUsername, createUser, getPublicRoutinesByUser, getUserById } = require('../db');
 
 router.post('/login', async (req, res, next) => {
@@ -14,7 +12,6 @@ router.post('/login', async (req, res, next) => {
         const user = await getUserByUsername(username);
         const hashedPassword = user.password;
         const passwordsMatch = await bcrypt.compare(password, hashedPassword);
-
         if (!username || !password) {
             next ({
                 name: 'MissingCredentialsError',
@@ -46,6 +43,7 @@ router.post('/register', async ( req, res, next) =>{
                 message: 'Please supply both a username and password'
             });
         };
+
         if (password.length < 8) {
             res.status(400)
             throw new Error ({
@@ -76,7 +74,6 @@ router.post('/register', async ( req, res, next) =>{
                 JWT_SECRET,
                 { expiresIn: '1w' }
             );
-
             res.send({
                 user,
                 token,
@@ -99,7 +96,7 @@ router.get('/me', async (req, res, next) =>{
             const { id } = jwt.verify(token, JWT_SECRET);
             req.user = await getUserById(id);
             res.send(req.user)
-        }
+        };
     } catch (error) {
         next (error);
     };    
@@ -112,8 +109,7 @@ router.get('/:username/routines', async (req, res, next) => {
         res.send(routines);
     } catch (error) {
         next (error);
-    };
-    
+    };    
 });
 
 router.use((req, res, next) => {
